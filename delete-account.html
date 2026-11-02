@@ -1,0 +1,46 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Delete your account · Muscle Week Trainer</title><link rel="stylesheet" href="style.css">
+<script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js"></script></head><body><main>
+<header class="top"><span class="logo">M</span><a href="index.html">Muscle Week Trainer</a></header>
+<h1>Delete your Muscle Week Trainer account</h1>
+<p>This permanently deletes your account and everything in it: your profile, gyms, workouts, food and body weight entries, favorites, your own exercises and your licence. It cannot be undone.</p>
+<p class="muted">You can also do this in the app: Profile → Delete account. A Google Play subscription is separate: cancel it in the Play Store → Payments &amp; subscriptions, so you are not charged again.</p>
+
+<div class="card" id="box">
+  <div id="step1">
+    <label for="email"><b>Your email</b> (the one you sign in with)</label>
+    <input id="email" type="email" autocomplete="email" placeholder="you@example.com" style="margin:8px 0 12px">
+    <button id="send">Send me a code</button>
+  </div>
+  <div id="step2" hidden>
+    <p>We sent a 6-digit code to <b id="who"></b>. It can take a minute; check spam too.</p>
+    <input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="margin:0 0 12px;letter-spacing:.2em">
+    <button id="check">Continue</button>
+  </div>
+  <div id="step3" hidden>
+    <p><b>Delete the account <span id="who2"></span> and all its data?</b></p>
+    <button class="danger" id="del">Yes, delete everything</button>
+  </div>
+  <div id="msg" class="msg" hidden></div>
+</div>
+
+<p class="muted">Cannot sign in? Email <a class="mail" href="#"></a> from the address of your account with the subject "Delete my account", and it will be deleted within 30 days.</p>
+<footer><a href="index.html">Home</a> · <a href="privacy.html">Privacy policy</a><br>© Ali Hajj Hassan. All rights reserved.</footer>
+<script>
+document.querySelectorAll('a.mail').forEach(a=>{a.textContent=SITE.supportEmail;a.href='mailto:'+SITE.supportEmail+'?subject=Delete%20my%20account';});
+const $=id=>document.getElementById(id), say=t=>{ $('msg').hidden=!t; $('msg').textContent=t||''; };
+const sb=window.supabase.createClient(SITE.supabaseUrl,SITE.supabaseAnonKey,{auth:{persistSession:false}});
+let email='';
+$('send').onclick=async()=>{ email=$('email').value.trim().toLowerCase(); if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ say('Enter a valid email address.'); return; }
+  $('send').disabled=true; say(''); const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false}}); $('send').disabled=false;
+  if(error){ say(/not found|signups not allowed/i.test(error.message)?'There is no account with this email.':'Could not send the code: '+error.message); return; }
+  $('who').textContent=email; $('step1').hidden=true; $('step2').hidden=false; };
+$('check').onclick=async()=>{ const token=$('code').value.trim(); if(token.length<6){ say('Enter the code from the email.'); return; }
+  $('check').disabled=true; const {error}=await sb.auth.verifyOtp({email,token,type:'email'}); $('check').disabled=false;
+  if(error){ say('That code did not work. Check the newest email.'); return; }
+  say(''); $('who2').textContent=email; $('step2').hidden=true; $('step3').hidden=false; };
+$('del').onclick=async()=>{ $('del').disabled=true; const {error}=await sb.rpc('delete_my_account');
+  if(error){ $('del').disabled=false; say('Could not delete the account: '+error.message); return; }
+  await sb.auth.signOut(); $('step3').hidden=true; say('Your account and all its data were deleted.'); };
+</script>
+</main></body></html>
